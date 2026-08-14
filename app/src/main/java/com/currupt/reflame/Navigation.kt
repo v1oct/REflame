@@ -38,15 +38,17 @@ fun ReflameNavHost(
         composable(Screen.Hub.route) {
             HubScreen { categoryTitle ->
                 when (categoryTitle) {
-                    "Movies" -> navController.navigate(Screen.Reading.route) // Placeholder
-                    "Music" -> navController.navigate(Screen.Library.route) // Placeholder
-                    "Anime" -> navController.navigate(Screen.Search.route) // Placeholder
-                    "Manhwa" -> navController.navigate(Screen.Reading.route) // Primary vertical
+                    "Movies" -> navController.navigate(Screen.Reading.route)
+                    "Music" -> navController.navigate(Screen.Library.route)
+                    "Anime" -> navController.navigate(Screen.Search.route)
+                    "Manhwa" -> navController.navigate(Screen.Reading.route)
                 }
             }
         }
 
-        composable(Screen.Reading.route) { PlaceholderScreen("Reading") }
+        composable(Screen.Reading.route) {
+            ReadingHomeScreen(onBackClick = { navController.popBackStack() })
+        }
         composable(Screen.Library.route) { PlaceholderScreen("Library") }
         composable(Screen.Search.route) { PlaceholderScreen("Search") }
         composable(Screen.Profile.route) { PlaceholderScreen("Profile") }
