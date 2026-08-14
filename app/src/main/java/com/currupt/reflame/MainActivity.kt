@@ -22,8 +22,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.*
@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.rememberNavController
 import com.currupt.reflame.ui.theme.RΞTheme
 
 class MainActivity : ComponentActivity() {
@@ -46,11 +47,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RΞTheme(darkTheme = true) {
+                val navController = rememberNavController()
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     containerColor = Color.Black
                 ) { innerPadding ->
-                    HubScreen(modifier = Modifier.padding(innerPadding))
+                    ReflameNavHost(
+                        navController = navController,
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }
@@ -58,7 +63,10 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun HubScreen(modifier: Modifier = Modifier) {
+fun HubScreen(
+    modifier: Modifier = Modifier,
+    onCategoryClick: (String) -> Unit = {}
+) {
     // Initial entrance animation state
     val isInspectionMode = androidx.compose.ui.platform.LocalInspectionMode.current
     val visibleState = remember {
@@ -116,7 +124,7 @@ fun HubScreen(modifier: Modifier = Modifier) {
                 Category("Movies", "Films & cinema", Icons.Rounded.Movie),
                 Category("Music", "Listen & discover", Icons.Rounded.MusicNote),
                 Category("Anime", "Anime & series", Icons.Rounded.AutoAwesome),
-                Category("Manhwa", "Read & explore", Icons.Rounded.MenuBook)
+                Category("Manhwa", "Read & explore", Icons.AutoMirrored.Rounded.MenuBook)
             )
 
             LazyVerticalGrid(
@@ -127,6 +135,7 @@ fun HubScreen(modifier: Modifier = Modifier) {
             ) {
                 items(categories) { category ->
                     CategoryCard(category) {
+                        onCategoryClick(category.title)
                         Log.d("HubScreen", "Selected category: ${category.title}")
                     }
                 }
@@ -212,6 +221,17 @@ fun HubPreview() {
     RΞTheme(darkTheme = true) {
         Surface(color = Color.Black) {
             HubScreen()
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Composable
+fun MainPreview() {
+    RΞTheme(darkTheme = true) {
+        val navController = rememberNavController()
+        Surface(color = Color.Black) {
+            ReflameNavHost(navController = navController)
         }
     }
 }
