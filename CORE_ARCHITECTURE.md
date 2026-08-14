@@ -39,7 +39,16 @@ Instead of vertical-specific databases, RΞflame uses a `ContentTitle` abstracti
 ## 8. Integration Architecture
 - **Event System**: The platform is designed to emit events (e.g., `ChapterReleased`) that can be consumed by external integrations like Discord webhooks.
 
-## 9. Future Implementation Strategy
+## 9. Backend Integration (Supabase)
+RΞflame uses **Supabase** as its backend foundation, providing:
+- **Auth**: Secure authentication with email/password support.
+- **Database**: PostgreSQL with Row Level Security (RLS) for data privacy.
+- **Storage**: Asset management for covers, banners, and artwork.
+- **Realtime**: Live updates for notifications and content releases.
+
+The initial database schema and RLS policies are documented in `SUPABASE_SCHEMA.sql`.
+
+## 10. Future Implementation Strategy
 - **Client**: Continue using clean Kotlin + Jetpack Compose.
 - **Server**: Universal content repository to be established behind clean interfaces.
 - **Migration**: Existing Reading mock data will eventually be mapped to the `ContentTitle` model.
