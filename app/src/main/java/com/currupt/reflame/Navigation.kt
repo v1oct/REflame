@@ -19,6 +19,9 @@ import androidx.navigation.compose.composable
 sealed class Screen(val route: String) {
     object Hub : Screen("hub")
     object Reading : Screen("reading")
+    object TitleDetails : Screen("details/{titleId}") {
+        fun createRoute(titleId: String) = "details/$titleId"
+    }
     object Library : Screen("library")
     object Search : Screen("search")
     object Profile : Screen("profile")
@@ -47,7 +50,23 @@ fun ReflameNavHost(
         }
 
         composable(Screen.Reading.route) {
-            ReadingHomeScreen(onBackClick = { navController.popBackStack() })
+            ReadingHomeScreen(
+                onBackClick = { navController.popBackStack() },
+                onTitleClick = { titleId ->
+                    navController.navigate(Screen.TitleDetails.createRoute(titleId))
+                }
+            )
+        }
+
+        composable(Screen.TitleDetails.route) { backStackEntry ->
+            val titleId = backStackEntry.arguments?.getString("titleId") ?: ""
+            TitleDetailsScreen(
+                titleId = titleId,
+                onBackClick = { navController.popBackStack() },
+                onTitleClick = { id ->
+                    navController.navigate(Screen.TitleDetails.createRoute(id))
+                }
+            )
         }
         composable(Screen.Library.route) { PlaceholderScreen("Library") }
         composable(Screen.Search.route) { PlaceholderScreen("Search") }
