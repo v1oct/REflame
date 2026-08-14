@@ -1,24 +1,19 @@
 package com.currupt.reflame
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Sort
-import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.ArrowBackIosNew
-import androidx.compose.material.icons.rounded.BookmarkAdd
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +22,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +31,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.currupt.reflame.ui.theme.RΞTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // --- Data Models ---
 
@@ -76,6 +75,22 @@ enum class ChapterAccessState {
     AVAILABLE, NEW, EARLY_ACCESS, LOCKED
 }
 
+data class ReaderChapter(
+    val id: String,
+    val titleId: String,
+    val title: String,
+    val chapterNumber: Int,
+    val chapterTitle: String = "",
+    val pages: List<ReaderPage>
+)
+
+data class ReaderPage(
+    val id: String,
+    val imageUrl: String = "",
+    val aspectRatio: Float = 0.7f,
+    val color: Color = Color.DarkGray
+)
+
 // --- Mock Data ---
 
 object ReadingMockData {
@@ -113,6 +128,25 @@ object ReadingMockData {
     )
 
     fun getTitleById(id: String): ReadingTitle? = (listOf(featuredTitle) + titles).find { it.id == id }
+
+    fun getReaderChapter(titleId: String, chapterId: String): ReaderChapter {
+        val title = getTitleById(titleId) ?: featuredTitle
+        val chapter = title.chapters.find { it.id == chapterId } ?: title.chapters.first()
+        
+        return ReaderChapter(
+            id = chapter.id,
+            titleId = title.id,
+            title = title.title,
+            chapterNumber = chapter.number,
+            chapterTitle = chapter.title,
+            pages = List(15) { i ->
+                ReaderPage(
+                    id = "p$i",
+                    color = title.artworkColor.copy(alpha = 0.1f + (i % 5) * 0.1f)
+                )
+            }
+        )
+    }
 }
 
 // --- UI Components ---
@@ -166,7 +200,7 @@ fun ReadingHomeHeader(onBackClick: () -> Unit) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(20.dp))
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(20.dp))
             }
             Text(
                 text = "ᏒΞ𝐟𝐥𝐚𝐦𝐞",
@@ -457,6 +491,7 @@ fun TitleDetailsScreen(
     titleId: String,
     onBackClick: () -> Unit,
     onTitleClick: (String) -> Unit,
+    onReadClick: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val title = ReadingMockData.getTitleById(titleId) ?: return
@@ -471,11 +506,11 @@ fun TitleDetailsScreen(
         TitleDetailsHeader(title, onBackClick)
         
         Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-            TitleDetailsActions(title)
+            TitleDetailsActions(title, onReadClick)
             Spacer(modifier = Modifier.height(24.dp))
             TitleDetailsInfo(title)
             Spacer(modifier = Modifier.height(32.dp))
-            ChapterListSection(title.chapters)
+            ChapterListSection(title, onReadClick)
             Spacer(modifier = Modifier.height(40.dp))
             ContentRail("YOU MAY ALSO LIKE", ReadingMockData.titles.take(4), onTitleClick)
             Spacer(modifier = Modifier.height(40.dp))
@@ -520,7 +555,7 @@ private fun TitleDetailsHeader(title: ReadingTitle, onBackClick: () -> Unit) {
                 .padding(top = 16.dp, start = 8.dp)
                 .align(Alignment.TopStart)
         ) {
-            Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = "Back", tint = Color.White)
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
         }
 
         // Title & Metadata Overlay
@@ -553,10 +588,10 @@ private fun TitleDetailsHeader(title: ReadingTitle, onBackClick: () -> Unit) {
 }
 
 @Composable
-private fun TitleDetailsActions(title: ReadingTitle) {
+private fun TitleDetailsActions(title: ReadingTitle, onReadClick: (String, String) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth()) {
         Button(
-            onClick = {},
+            onClick = { onReadClick(title.id, title.chapters.firstOrNull()?.id ?: "") },
             modifier = Modifier.weight(1f).height(48.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
             shape = RoundedCornerShape(12.dp)
@@ -614,7 +649,7 @@ private fun InfoItem(label: String, value: String) {
 }
 
 @Composable
-private fun ChapterListSection(chapters: List<Chapter>) {
+private fun ChapterListSection(title: ReadingTitle, onReadClick: (String, String) -> Unit) {
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(text = "CHAPTERS", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Color.White))
@@ -623,17 +658,17 @@ private fun ChapterListSection(chapters: List<Chapter>) {
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        chapters.forEach { chapter ->
-            ChapterRow(chapter)
+        title.chapters.forEach { chapter ->
+            ChapterRow(chapter) { onReadClick(title.id, chapter.id) }
             HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
         }
     }
 }
 
 @Composable
-private fun ChapterRow(chapter: Chapter) {
+private fun ChapterRow(chapter: Chapter, onClick: () -> Unit) {
     Surface(
-        onClick = {},
+        onClick = onClick,
         color = Color.Transparent,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -681,7 +716,278 @@ fun StatusBadge(text: String, color: Color) {
 fun TitleDetailsPreview() {
     RΞTheme(darkTheme = true) {
         Surface(color = Color.Black) {
-            TitleDetailsScreen(titleId = "1", onBackClick = {}, onTitleClick = {})
+            TitleDetailsScreen(titleId = "1", onBackClick = {}, onTitleClick = {}, onReadClick = { _, _ -> })
+        }
+    }
+}
+
+// --- Reader Screen ---
+
+@Composable
+fun ReaderScreen(
+    titleId: String,
+    chapterId: String,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val readerChapter = remember(titleId, chapterId) {
+        ReadingMockData.getReaderChapter(titleId, chapterId)
+    }
+    
+    var controlsVisible by remember { mutableStateOf(true) }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Auto-hide controls
+    LaunchedEffect(controlsVisible) {
+        if (controlsVisible) {
+            delay(3000)
+            controlsVisible = false
+        }
+    }
+
+    // Calculate progress
+    val progress = remember {
+        derivedStateOf {
+            if (readerChapter.pages.isEmpty()) 0
+            else {
+                val layoutInfo = listState.layoutInfo
+                val totalItems = layoutInfo.totalItemsCount
+                if (totalItems == 0) 0
+                else {
+                    val firstVisible = listState.firstVisibleItemIndex
+                    ((firstVisible.toFloat() / (totalItems - 1)) * 100).toInt().coerceIn(0, 100)
+                }
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { controlsVisible = !controlsVisible })
+            }
+    ) {
+        // Pages List
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 100.dp) // Space for "Next Chapter"
+        ) {
+            items(readerChapter.pages) { page ->
+                ReaderPageItem(page)
+            }
+            
+            item {
+                ChapterEndAction()
+            }
+        }
+
+        // Overlays
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { -it }),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            ReaderTopBar(readerChapter, onBackClick)
+        }
+
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            ReaderBottomBar(readerChapter, progress.value)
+        }
+    }
+}
+
+@Composable
+private fun ReaderPageItem(page: ReaderPage) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(page.aspectRatio)
+            .background(page.color)
+    ) {
+        // In a real app, this would be an Image component
+        Text(
+            text = "PAGE ${page.id.removePrefix("p").toInt() + 1}",
+            modifier = Modifier.align(Alignment.Center),
+            color = Color.White.copy(alpha = 0.2f),
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun ReaderTopBar(chapter: ReaderChapter, onBackClick: () -> Unit) {
+    Surface(
+        color = Color.Black.copy(alpha = 0.8f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBackClick) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
+            Column(modifier = Modifier.padding(start = 8.dp)) {
+                Text(
+                    text = chapter.title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "Chapter ${chapter.chapterNumber}${if (chapter.chapterTitle.isNotEmpty()) ": ${chapter.chapterTitle}" else ""}",
+                    style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.6f))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReaderBottomBar(chapter: ReaderChapter, progress: Int) {
+    var showSettings by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (showSettings) {
+            ReaderSettingsPanel(onClose = { showSettings = false })
+        }
+        
+        Surface(
+            color = Color.Black.copy(alpha = 0.8f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {}) {
+                        Icon(Icons.Rounded.ChevronLeft, contentDescription = "Prev", tint = Color.White)
+                    }
+                    
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Chapter ${chapter.chapterNumber} · $progress%",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, color = Color.White)
+                        )
+                        Text(
+                            text = "${chapter.chapterNumber} / 212", // Mock total
+                            style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.4f))
+                        )
+                    }
+
+                    Row {
+                        IconButton(onClick = { showSettings = !showSettings }) {
+                            Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = Color.White)
+                        }
+                        IconButton(onClick = {}) {
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = "Next", tint = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReaderSettingsPanel(onClose: () -> Unit) {
+    Surface(
+        color = Color(0xFF121212),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Reader Settings",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White)
+                )
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            SettingRow("Reading Direction", "Vertical")
+            SettingRow("Page Spacing", "Compact")
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "Fullscreen", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                Switch(checked = true, onCheckedChange = {}, colors = SwitchDefaults.colors(checkedThumbColor = Color.White))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = Color.White)
+        Text(text = value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.6f)))
+    }
+}
+
+@Composable
+private fun ChapterEndAction() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = {},
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            Text("NEXT CHAPTER →", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Composable
+fun ReaderPreview() {
+    RΞTheme(darkTheme = true) {
+        Surface(color = Color.Black) {
+            ReaderScreen(titleId = "1", chapterId = "c128", onBackClick = {})
         }
     }
 }

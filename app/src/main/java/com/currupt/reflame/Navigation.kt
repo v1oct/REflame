@@ -22,6 +22,9 @@ sealed class Screen(val route: String) {
     object TitleDetails : Screen("details/{titleId}") {
         fun createRoute(titleId: String) = "details/$titleId"
     }
+    object Reader : Screen("reader/{titleId}/{chapterId}") {
+        fun createRoute(titleId: String, chapterId: String) = "reader/$titleId/$chapterId"
+    }
     object Library : Screen("library")
     object Search : Screen("search")
     object Profile : Screen("profile")
@@ -65,7 +68,20 @@ fun ReflameNavHost(
                 onBackClick = { navController.popBackStack() },
                 onTitleClick = { id ->
                     navController.navigate(Screen.TitleDetails.createRoute(id))
+                },
+                onReadClick = { tId, cId ->
+                    navController.navigate(Screen.Reader.createRoute(tId, cId))
                 }
+            )
+        }
+
+        composable(Screen.Reader.route) { backStackEntry ->
+            val titleId = backStackEntry.arguments?.getString("titleId") ?: ""
+            val chapterId = backStackEntry.arguments?.getString("chapterId") ?: ""
+            ReaderScreen(
+                titleId = titleId,
+                chapterId = chapterId,
+                onBackClick = { navController.popBackStack() }
             )
         }
         composable(Screen.Library.route) { PlaceholderScreen("Library") }
