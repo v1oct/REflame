@@ -34,6 +34,7 @@ import com.currupt.reflame.feature.reading.ReadingHomeState
 import com.currupt.reflame.feature.reading.ReadingHomeViewModel
 import com.currupt.reflame.feature.reading.TitleDetailsState
 import com.currupt.reflame.feature.reading.TitleDetailsViewModel
+import com.currupt.reflame.feature.reading.ReadingHomeSection
 import com.currupt.reflame.ui.theme.RΞTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -51,14 +52,6 @@ fun String.toColor(): Color {
 // --- Mock Data (Fallbacks for Previews) ---
 
 object ReadingMockData {
-    private val mockChapters = listOf(
-        Chapter("c130", "1", 130.0, "The Final Battle Begins", "2h ago", "EARLY_ACCESS", 5),
-        Chapter("c129", "1", 129.0, "Unlikely Allies", "1d ago", "NEW"),
-        Chapter("c128", "1", 128.0, "The Shadow Rises", "3d ago", "AVAILABLE"),
-        Chapter("c127", "1", 127.0, "A Broken Promise", "5d ago", "AVAILABLE"),
-        Chapter("c126", "1", 126.0, "Descent into Darkness", "1w ago", "AVAILABLE")
-    )
-
     val featuredTitle = ContentTitle(
         id = "1",
         title = "The Law Of Being Friends With A Male",
@@ -123,7 +116,7 @@ fun ReadingHomeScreen(
 ) {
     if (viewModel == null) {
         ReadingHomeContent(
-            titles = ReadingMockData.titles,
+            sections = emptyList(), // Placeholder for preview
             onBackClick = onBackClick,
             onTitleClick = onTitleClick,
             modifier = modifier
@@ -140,7 +133,7 @@ fun ReadingHomeScreen(
                 }
                 is ReadingHomeState.Success -> {
                     ReadingHomeContent(
-                        titles = state.titles,
+                        sections = state.sections,
                         onBackClick = onBackClick,
                         onTitleClick = onTitleClick
                     )
@@ -152,7 +145,7 @@ fun ReadingHomeScreen(
 
 @Composable
 fun ReadingHomeContent(
-    titles: List<ContentTitle>,
+    sections: List<ReadingHomeSection>,
     onBackClick: () -> Unit,
     onTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -169,22 +162,64 @@ fun ReadingHomeContent(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
         )
 
-        val featured = titles.find { it.isHot } ?: ReadingMockData.featuredTitle
-        FeaturedHero(
-            title = featured,
-            onClick = { onTitleClick(featured.id) },
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        ContentRail("New Series:", titles.filter { it.isNew || it.isTrending }, onTitleClick)
-        ContentRail("🔥 HOT MANHWA", titles.filter { it.type == ContentType.MANHWA && it.isHot }, onTitleClick)
-        ContentRail("⚡ EARLY ACCESS", titles.filter { it.isEarlyAccess }, onTitleClick)
-        ContentRail("🔥 HOT MANGA", titles.filter { it.type == ContentType.MANGA }, onTitleClick)
-        ContentRail("🦸 HOT COMICS", titles.filter { it.type == ContentType.COMIC }, onTitleClick)
+        if (sections.isEmpty()) {
+            // Empty state or fallback
+            Spacer(modifier = Modifier.height(40.dp))
+            Text(
+                text = "Discover RΞflame Catalog",
+                modifier = Modifier.padding(20.dp),
+                color = Color.White.copy(alpha = 0.4f)
+            )
+        } else {
+            sections.forEach { homeSection ->
+                SectionRenderer(
+                    homeSection = homeSection,
+                    onTitleClick = onTitleClick
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(40.dp))
+    }
+}
+
+@Composable
+fun SectionRenderer(
+    homeSection: ReadingHomeSection,
+    onTitleClick: (String) -> Unit
+) {
+    val section = homeSection.section
+    val titles = homeSection.titles
+    
+    if (titles.isEmpty() && section.type != SectionType.BANNER) return
+
+    when (section.type) {
+        SectionType.HERO -> {
+            val featured = titles.firstOrNull() ?: return
+            FeaturedHero(
+                title = featured,
+                onClick = { onTitleClick(featured.id) },
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+        }
+        SectionType.RAIL -> {
+            ContentRail(
+                title = section.title,
+                titles = titles,
+                onTitleClick = onTitleClick
+            )
+        }
+        SectionType.GRID -> {
+            // Dynamic Grid Implementation if needed
+            ContentRail(
+                title = section.title,
+                titles = titles,
+                onTitleClick = onTitleClick
+            )
+        }
+        else -> {
+            // Handle other types
+        }
     }
 }
 

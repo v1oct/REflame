@@ -60,6 +60,29 @@ enum class ContentStatus {
 }
 
 /**
+ * Universal content collection.
+ */
+@Serializable
+data class ContentCollection(
+    val id: String,
+    val title: String,
+    val description: String = "",
+    @SerialName("artwork_url") val artworkUrl: String? = null,
+    @SerialName("is_active") val isActive: Boolean = true,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+/**
+ * Link between a collection and a title.
+ */
+@Serializable
+data class CollectionItem(
+    @SerialName("collection_id") val collectionId: String,
+    @SerialName("content_id") val contentId: String,
+    val priority: Int = 0
+)
+
+/**
  * Content unit for a title (e.g. Chapter for Reading, Episode for Anime).
  */
 @Serializable

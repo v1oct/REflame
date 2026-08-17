@@ -38,6 +38,11 @@ CREATE TABLE IF NOT EXISTS public.content (
     content_type TEXT NOT NULL, -- MANHWA, MANGA, SERIES, etc.
     genres TEXT[] DEFAULT '{}',
     status TEXT DEFAULT 'ONGOING',
+    is_hot BOOLEAN DEFAULT false,
+    is_new BOOLEAN DEFAULT false,
+    is_trending BOOLEAN DEFAULT false,
+    is_early_access BOOLEAN DEFAULT false,
+    artwork_color TEXT DEFAULT '#2C3E50',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -47,7 +52,75 @@ ALTER TABLE public.content ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Content is viewable by everyone." ON public.content
     FOR SELECT USING (true);
 
--- 3. Library Entries
+-- 3. Chapters Table
+CREATE TABLE IF NOT EXISTS public.chapters (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    content_id UUID REFERENCES public.content(id) ON DELETE CASCADE NOT NULL,
+    number DOUBLE PRECISION NOT NULL,
+    title TEXT,
+    release_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    access_state TEXT DEFAULT 'AVAILABLE', -- AVAILABLE, NEW, EARLY_ACCESS, LOCKED
+    coin_price INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Chapters are viewable by everyone." ON public.chapters
+    FOR SELECT USING (true);
+
+-- 4. Content Collections
+CREATE TABLE IF NOT EXISTS public.collections (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    artwork_url TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.collections ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Collections are viewable by everyone." ON public.collections
+    FOR SELECT USING (true);
+
+-- 5. Collection Items
+CREATE TABLE IF NOT EXISTS public.collection_items (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    collection_id UUID REFERENCES public.collections(id) ON DELETE CASCADE NOT NULL,
+    content_id UUID REFERENCES public.content(id) ON DELETE CASCADE NOT NULL,
+    priority INTEGER DEFAULT 0,
+    UNIQUE(collection_id, content_id)
+);
+
+ALTER TABLE public.collection_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Collection items are viewable by everyone." ON public.collection_items
+    FOR SELECT USING (true);
+
+-- 6. Content Sections (Editorial Home)
+CREATE TABLE IF NOT EXISTS public.content_sections (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    vertical TEXT, -- READING, MUSIC (Null = Universal)
+    type TEXT NOT NULL DEFAULT 'RAIL', -- HERO, RAIL, GRID, BANNER
+    source_type TEXT NOT NULL DEFAULT 'LATEST_RELEASES', -- HOT, NEW, TRENDING, COLLECTION, PERSONALIZED
+    collection_id UUID REFERENCES public.collections(id),
+    priority INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    starts_at BIGINT, -- epoch millis
+    expires_at BIGINT, -- epoch millis
+    limit_count INTEGER DEFAULT 10,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.content_sections ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Content sections are viewable by everyone." ON public.content_sections
+    FOR SELECT USING (true);
+
+-- 7. Library Entries
 CREATE TABLE IF NOT EXISTS public.library_entries (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -62,7 +135,7 @@ ALTER TABLE public.library_entries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage their own library entries." ON public.library_entries
     FOR ALL USING (auth.uid() = user_id);
 
--- 4. Content Progress
+-- 8. Content Progress
 CREATE TABLE IF NOT EXISTS public.content_progress (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -80,7 +153,7 @@ ALTER TABLE public.content_progress ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage their own progress." ON public.content_progress
     FOR ALL USING (auth.uid() = user_id);
 
--- 5. Wallet System
+-- 9. Wallet System
 CREATE TABLE IF NOT EXISTS public.wallets (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     balance INTEGER DEFAULT 0 NOT NULL CHECK (balance >= 0),
@@ -92,9 +165,7 @@ ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own wallet." ON public.wallets
     FOR SELECT USING (auth.uid() = user_id);
 
--- Wallets should be modified only by service role or RPC functions.
-
--- 6. Coin Transactions
+-- 10. Coin Transactions
 CREATE TABLE IF NOT EXISTS public.coin_transactions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -111,7 +182,7 @@ ALTER TABLE public.coin_transactions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own transactions." ON public.coin_transactions
     FOR SELECT USING (auth.uid() = user_id);
 
--- 7. Redemption Codes
+-- 11. Redemption Codes
 CREATE TABLE IF NOT EXISTS public.redemption_codes (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     code TEXT UNIQUE NOT NULL,
@@ -129,7 +200,7 @@ ALTER TABLE public.redemption_codes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Redemption codes are viewable by authenticated users." ON public.redemption_codes
     FOR SELECT USING (auth.role() = 'authenticated');
 
--- 8. Code Redemptions
+-- 12. Code Redemptions
 CREATE TABLE IF NOT EXISTS public.code_redemptions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     code_id UUID REFERENCES public.redemption_codes(id) ON DELETE CASCADE NOT NULL,
@@ -143,7 +214,7 @@ ALTER TABLE public.code_redemptions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own redemptions." ON public.code_redemptions
     FOR SELECT USING (auth.uid() = user_id);
 
--- 9. Badges
+-- 13. Badges
 CREATE TABLE IF NOT EXISTS public.badges (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
@@ -160,7 +231,7 @@ ALTER TABLE public.badges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Badges are viewable by everyone." ON public.badges
     FOR SELECT USING (true);
 
--- 10. User Badges
+-- 14. User Badges
 CREATE TABLE IF NOT EXISTS public.user_badges (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -175,7 +246,7 @@ ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own badges." ON public.user_badges
     FOR SELECT USING (auth.uid() = user_id);
 
--- 11. Announcements
+-- 15. Announcements
 CREATE TABLE IF NOT EXISTS public.announcements (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
@@ -194,7 +265,7 @@ ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Announcements are viewable by everyone." ON public.announcements
     FOR SELECT USING (true);
 
--- 12. Notifications
+-- 16. Notifications
 CREATE TABLE IF NOT EXISTS public.notifications (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,

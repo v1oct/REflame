@@ -12,13 +12,16 @@ The project is physically organized into:
 Decouples screen logic from specific content types.
 - **ContentTitle**: Universal metadata (id, title, genres, artwork).
 - **Vertical**: Active verticals: `READING`, `MUSIC`.
-- **ContentUnit**: Interface for children (Chapters, Episodes).
+- **ContentUnit**: Interface for children (Chapters).
+- **Collections**: Support for grouping content (e.g., "Summer Event").
 
 ## 3. Data / Repository Layer [IMPLEMENTED]
 Repositories are responsible for data retrieval from Supabase.
 - **ContentRepository**: `core/content/ContentRepository.kt`
+- **SectionRepository**: `core/content/SectionRepository.kt`
 - **ReadingRepository**: `feature/reading/ReadingRepository.kt`
 - **MusicRepository**: `feature/music/MusicRepository.kt`
+- **CollectionRepository**: `core/collections/CollectionRepository.kt`
 - **ProfileRepository**: `core/database/ProfileRepository.kt`
 
 ## 4. Feature Modules [IMPLEMENTED]
@@ -28,18 +31,20 @@ Repositories are responsible for data retrieval from Supabase.
     - Vertical scrolling chapter reader.
 - **Music**:
     - `feature/music/MusicHomeViewModel.kt`
-    - Support for Tracks, Albums, Artists.
+    - Support for Tracks, Albums, Artists (Foundation only).
 
-## 5. Shared Platform Systems [IMPLEMENTED]
+## 5. Data-Driven Editorial [IMPLEMENTED]
+Home screens are rendered dynamically using a section-based architecture.
+- **ContentSection**: Defines layout (HERO, RAIL), source (HOT, NEW, COLLECTION), and availability.
+- **SectionRenderer**: Reusable logic in `ReadingScreen.kt` for mapping data to UI.
+
+## 6. Shared Platform Systems [IMPLEMENTED]
 - **Identity**: `core/auth/AuthRepository.kt`, `core/model/Identity.kt`.
 - **Economy**: `core/model/Economy.kt` (RΞflame Coins).
 - **Availability**: `core/availability/AvailabilityService.kt`.
 - **Rewards**: `core/model/Rewards.kt` (Codes, Badges).
 - **Activity**: `core/model/Activity.kt` (Library, Progress, History).
 
-## 6. Data-Driven Editorial [PLANNED]
-- Home screens will consume dynamic sections from the `ContentSection` model.
-
 ## 7. Security (Supabase)
-- **RLS**: PostgreSQL policies ensure data privacy.
+- **RLS**: PostgreSQL policies ensure data privacy. Users can only manage their own Library and Progress.
 - **Stateless UI**: UI components consume data via ViewModels.

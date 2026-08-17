@@ -39,6 +39,8 @@ data class ContentSection(
     val subtitle: String = "",
     val type: SectionType = SectionType.RAIL,
     val vertical: Vertical? = null,
+    @SerialName("source_type") val sourceType: SectionSourceType = SectionSourceType.LATEST_RELEASES,
+    @SerialName("collection_id") val collectionId: String? = null,
     @SerialName("filter_query") val filterQuery: String = "",
     val ordering: String = "trending",
     val limit: Int = 10,
@@ -47,6 +49,16 @@ data class ContentSection(
     @SerialName("is_active") val isActive: Boolean = true,
     val priority: Int = 0
 )
+
+@Serializable
+enum class SectionSourceType {
+    LATEST_RELEASES,
+    TRENDING,
+    HOT,
+    NEW,
+    COLLECTION,
+    PERSONALIZED
+}
 
 @Serializable
 enum class SectionType {
