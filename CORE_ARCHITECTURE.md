@@ -38,7 +38,14 @@ Home screens are rendered dynamically using a section-based architecture.
 - **ContentSection**: Defines layout (HERO, RAIL), source (HOT, NEW, COLLECTION), and availability.
 - **SectionRenderer**: Reusable logic in `ReadingScreen.kt` for mapping data to UI.
 
-## 6. Shared Platform Systems [IMPLEMENTED]
+## 6. Content Ingestion & Providers [IMPLEMENTED]
+Established a provider-agnostic pipeline for authorized content:
+- **ContentProvider**: Interface for external metadata and content sources.
+- **Provider Mapping**: Securely links RΞflame IDs to external provider IDs in Supabase.
+- **IngestionService**: Idempotent service to normalize and import content/chapters.
+- **Copyright Safety**: Architecture strictly supports authorized/licensed sources.
+
+## 7. Shared Platform Systems [IMPLEMENTED]
 - **Identity**: `core/auth/AuthRepository.kt`, `core/model/Identity.kt`.
 - **Economy**: `core/model/Economy.kt` (RΞflame Coins).
 - **Availability**: `core/availability/AvailabilityService.kt`.

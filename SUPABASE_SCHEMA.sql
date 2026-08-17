@@ -281,3 +281,34 @@ ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage their own notifications." ON public.notifications
     FOR ALL USING (auth.uid() = user_id);
+
+-- 17. Content Providers & Mappings
+CREATE TABLE IF NOT EXISTS public.content_providers (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    base_url TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.content_providers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Content providers are viewable by everyone." ON public.content_providers
+    FOR SELECT USING (true);
+
+CREATE TABLE IF NOT EXISTS public.provider_mappings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    provider_id UUID REFERENCES public.content_providers(id) ON DELETE CASCADE NOT NULL,
+    reflame_content_id UUID REFERENCES public.content(id) ON DELETE CASCADE,
+    reflame_chapter_id UUID REFERENCES public.chapters(id) ON DELETE CASCADE,
+    external_id TEXT NOT NULL,
+    mapping_type TEXT NOT NULL, -- TITLE, CHAPTER
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(provider_id, external_id, mapping_type)
+);
+
+ALTER TABLE public.provider_mappings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Mappings are viewable by everyone." ON public.provider_mappings
+    FOR SELECT USING (true);
