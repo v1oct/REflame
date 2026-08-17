@@ -23,8 +23,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -121,10 +119,8 @@ fun HubScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             val categories = listOf(
-                Category("Movies", "Films & cinema", Icons.Rounded.Movie),
-                Category("Music", "Listen & discover", Icons.Rounded.MusicNote),
-                Category("Anime", "Anime & series", Icons.Rounded.AutoAwesome),
-                Category("Manhwa", "Read & explore", Icons.AutoMirrored.Rounded.MenuBook)
+                Category("Manhwa", "Read & explore", Icons.AutoMirrored.Rounded.MenuBook),
+                Category("Music", "Listen & discover", Icons.Rounded.MusicNote)
             )
 
             LazyVerticalGrid(

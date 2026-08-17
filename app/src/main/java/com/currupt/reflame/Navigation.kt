@@ -9,9 +9,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.currupt.reflame.feature.music.MusicHomeViewModel
+import com.currupt.reflame.feature.reading.ReadingHomeViewModel
+import com.currupt.reflame.feature.reading.TitleDetailsViewModel
 
 /**
  * Centralized route definitions for RΞflame.
@@ -19,6 +23,7 @@ import androidx.navigation.compose.composable
 sealed class Screen(val route: String) {
     object Hub : Screen("hub")
     object Reading : Screen("reading")
+    object Music : Screen("music")
     object TitleDetails : Screen("details/{titleId}") {
         fun createRoute(titleId: String) = "details/$titleId"
     }
@@ -44,25 +49,31 @@ fun ReflameNavHost(
         composable(Screen.Hub.route) {
             HubScreen { categoryTitle ->
                 when (categoryTitle) {
-                    "Movies" -> navController.navigate(Screen.Reading.route)
-                    "Music" -> navController.navigate(Screen.Library.route)
-                    "Anime" -> navController.navigate(Screen.Search.route)
+                    "Music" -> navController.navigate(Screen.Music.route)
                     "Manhwa" -> navController.navigate(Screen.Reading.route)
+                    else -> {} // Removed Anime/Movies
                 }
             }
         }
 
         composable(Screen.Reading.route) {
+            val homeViewModel: ReadingHomeViewModel = viewModel()
             ReadingHomeScreen(
                 onBackClick = { navController.popBackStack() },
                 onTitleClick = { titleId ->
                     navController.navigate(Screen.TitleDetails.createRoute(titleId))
-                }
+                },
+                viewModel = homeViewModel
             )
         }
 
         composable(Screen.TitleDetails.route) { backStackEntry ->
             val titleId = backStackEntry.arguments?.getString("titleId") ?: ""
+            val detailsViewModel: TitleDetailsViewModel = viewModel(
+                key = titleId,
+                factory = TitleDetailsViewModel.provideFactory(titleId)
+            )
+            
             TitleDetailsScreen(
                 titleId = titleId,
                 onBackClick = { navController.popBackStack() },
@@ -71,7 +82,8 @@ fun ReflameNavHost(
                 },
                 onReadClick = { tId, cId ->
                     navController.navigate(Screen.Reader.createRoute(tId, cId))
-                }
+                },
+                viewModel = detailsViewModel
             )
         }
 
@@ -84,6 +96,15 @@ fun ReflameNavHost(
                 onBackClick = { navController.popBackStack() }
             )
         }
+
+        composable(Screen.Music.route) {
+            val musicViewModel: MusicHomeViewModel = viewModel()
+            // Placeholder Music Screen UI
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+                Text(text = "Music Vertical Placeholder", color = Color.White)
+            }
+        }
+
         composable(Screen.Library.route) { PlaceholderScreen("Library") }
         composable(Screen.Search.route) { PlaceholderScreen("Search") }
         composable(Screen.Profile.route) { PlaceholderScreen("Profile") }

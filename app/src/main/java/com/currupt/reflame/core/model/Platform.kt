@@ -1,21 +1,26 @@
 package com.currupt.reflame.core.model
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
 /**
  * Universal platform announcement.
  */
+@Serializable
 data class Announcement(
     val id: String,
     val title: String,
     val message: String,
     val type: AnnouncementType = AnnouncementType.NEWS,
     val priority: Int = 0,
-    val imageUrl: String? = null,
-    val actionUrl: String? = null,
-    val startsAt: Long,
-    val expiresAt: Long? = null,
-    val isActive: Boolean = true
+    @SerialName("image_url") val imageUrl: String? = null,
+    @SerialName("action_url") val actionUrl: String? = null,
+    @SerialName("starts_at") val startsAt: Long,
+    @SerialName("expires_at") val expiresAt: Long? = null,
+    @SerialName("is_active") val isActive: Boolean = true
 )
 
+@Serializable
 enum class AnnouncementType {
     NEWS,
     UPDATE,
@@ -27,20 +32,23 @@ enum class AnnouncementType {
 /**
  * Editorial section for homepages (universal or vertical-specific).
  */
+@Serializable
 data class ContentSection(
     val id: String,
     val title: String,
     val subtitle: String = "",
     val type: SectionType = SectionType.RAIL,
-    val vertical: Vertical? = null, // Null means platform-wide
-    val filterQuery: String = "", // e.g. "isHot=true"
+    val vertical: Vertical? = null,
+    @SerialName("filter_query") val filterQuery: String = "",
     val ordering: String = "trending",
     val limit: Int = 10,
-    val startsAt: Long? = null,
-    val expiresAt: Long? = null,
-    val isActive: Boolean = true
+    @SerialName("starts_at") val startsAt: Long? = null,
+    @SerialName("expires_at") val expiresAt: Long? = null,
+    @SerialName("is_active") val isActive: Boolean = true,
+    val priority: Int = 0
 )
 
+@Serializable
 enum class SectionType {
     HERO,
     RAIL,
@@ -52,17 +60,19 @@ enum class SectionType {
 /**
  * Universal user notification.
  */
+@Serializable
 data class Notification(
     val id: String,
-    val userId: String,
+    @SerialName("user_id") val userId: String,
     val type: NotificationType,
     val title: String,
     val message: String,
-    val referenceId: String? = null, // e.g. contentId or transactionId
-    val isRead: Boolean = false,
-    val createdAt: Long
+    @SerialName("reference_id") val referenceId: String? = null,
+    @SerialName("is_read") val isRead: Boolean = false,
+    @SerialName("created_at") val createdAt: Long
 )
 
+@Serializable
 enum class NotificationType {
     CONTENT_RELEASE,
     REWARD_ACQUIRED,

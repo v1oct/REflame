@@ -23,56 +23,77 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.currupt.reflame.core.model.*
+import com.currupt.reflame.feature.reading.ReadingHomeState
+import com.currupt.reflame.feature.reading.ReadingHomeViewModel
+import com.currupt.reflame.feature.reading.TitleDetailsState
+import com.currupt.reflame.feature.reading.TitleDetailsViewModel
 import com.currupt.reflame.ui.theme.RΞTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// --- Data Models ---
+// --- Utilities ---
 
-data class ReadingTitle(
-    val id: String,
-    val title: String,
-    val subtitle: String = "",
-    val description: String = "",
-    val type: String,
-    val genres: List<String>,
-    val author: String = "RΞflame Original",
-    val artist: String = "RΞflame Studio",
-    val latestChapter: String,
-    val updateTime: String,
-    val status: ReadingStatus = ReadingStatus.NOT_STARTED,
-    val progress: Int = 0,
-    val isEarlyAccess: Boolean = false,
-    val isHot: Boolean = false,
-    val isNew: Boolean = false,
-    val isTrending: Boolean = false,
-    val artworkColor: Color = Color.DarkGray,
-    val chapters: List<Chapter> = emptyList()
-)
-
-data class Chapter(
-    val id: String,
-    val number: Int,
-    val title: String = "",
-    val releaseDate: String,
-    val accessState: ChapterAccessState = ChapterAccessState.AVAILABLE,
-    val coinPrice: Int = 0,
-    val readingProgress: Int = 0
-)
-
-enum class ReadingStatus {
-    NOT_STARTED, READING, COMPLETED, LOCKED
+fun String.toColor(): Color {
+    return try {
+        Color(android.graphics.Color.parseColor(this))
+    } catch (e: Exception) {
+        Color.DarkGray
+    }
 }
 
-enum class ChapterAccessState {
-    AVAILABLE, NEW, EARLY_ACCESS, LOCKED
+// --- Mock Data (Fallbacks for Previews) ---
+
+object ReadingMockData {
+    private val mockChapters = listOf(
+        Chapter("c130", "1", 130.0, "The Final Battle Begins", "2h ago", "EARLY_ACCESS", 5),
+        Chapter("c129", "1", 129.0, "Unlikely Allies", "1d ago", "NEW"),
+        Chapter("c128", "1", 128.0, "The Shadow Rises", "3d ago", "AVAILABLE"),
+        Chapter("c127", "1", 127.0, "A Broken Promise", "5d ago", "AVAILABLE"),
+        Chapter("c126", "1", 126.0, "Descent into Darkness", "1w ago", "AVAILABLE")
+    )
+
+    val featuredTitle = ContentTitle(
+        id = "1",
+        title = "The Law Of Being Friends With A Male",
+        description = "Jay is a guy that wanted to talk with his friend about their secret crushes. When Jay was about to confess who he has a crush on, his friend Jiwoon, whose crush is actually towards...",
+        vertical = Vertical.READING,
+        type = ContentType.COMIC,
+        genres = listOf("Romance", "Drama", "School Life"),
+        isHot = true,
+        artworkColorHex = "#2C3E50"
+    )
+
+    val titles = listOf(
+        ContentTitle("2", "Hidden Fire", "Description here", "", "", Vertical.READING, ContentType.MANHWA, listOf("Fantasy"), status = ContentStatus.ONGOING, isEarlyAccess = true, artworkColorHex = "#311B92"),
+        ContentTitle("3", "My Husband Didn't Want...", "Description here", "", "", Vertical.READING, ContentType.MANHWA, listOf("Action"), status = ContentStatus.ONGOING, isTrending = true, artworkColorHex = "#0D47A1"),
+        ContentTitle("4", "The Beginning After The End", "Description here", "", "", Vertical.READING, ContentType.MANHWA, listOf("Isekai"), status = ContentStatus.ONGOING, isNew = true, artworkColorHex = "#004D40")
+    )
+
+    fun getTitleById(id: String): ContentTitle? = (listOf(featuredTitle) + titles).find { it.id == id }
+
+    fun getReaderChapter(titleId: String, chapterId: String): ReaderChapter {
+        val title = getTitleById(titleId) ?: featuredTitle
+        return ReaderChapter(
+            id = chapterId,
+            titleId = title.id,
+            title = title.title,
+            chapterNumber = 128,
+            chapterTitle = "The Shadow Rises",
+            pages = List(15) { i ->
+                ReaderPage(
+                    id = "p$i",
+                    color = title.artworkColorHex.toColor().copy(alpha = 0.1f + (i % 5) * 0.1f)
+                )
+            }
+        )
+    }
 }
 
 data class ReaderChapter(
@@ -91,78 +112,55 @@ data class ReaderPage(
     val color: Color = Color.DarkGray
 )
 
-// --- Mock Data ---
-
-object ReadingMockData {
-    private val mockChapters = listOf(
-        Chapter("c130", 130, "The Final Battle Begins", "2h ago", ChapterAccessState.EARLY_ACCESS, 5),
-        Chapter("c129", 129, "Unlikely Allies", "1d ago", ChapterAccessState.NEW),
-        Chapter("c128", 128, "The Shadow Rises", "3d ago", ChapterAccessState.AVAILABLE),
-        Chapter("c127", 127, "A Broken Promise", "5d ago", ChapterAccessState.AVAILABLE, readingProgress = 67),
-        Chapter("c126", 126, "Descent into Darkness", "1w ago", ChapterAccessState.AVAILABLE, readingProgress = 100)
-    )
-
-    val featuredTitle = ReadingTitle(
-        id = "1",
-        title = "The Law Of Being Friends With A Male",
-        subtitle = "Rise from the weakest to the strongest",
-        description = "Jay is a guy that wanted to talk with his friend about their secret crushes. When Jay was about to confess who he has a crush on, his friend Jiwoon, whose crush is actually towards...",
-        type = "Comics",
-        genres = listOf("Romance", "Drama", "School Life"),
-        latestChapter = "Chapter 212",
-        updateTime = "2h ago",
-        isHot = true,
-        artworkColor = Color(0xFF2C3E50),
-        chapters = mockChapters
-    )
-
-    val titles = listOf(
-        ReadingTitle("2", "Hidden Fire", type = "Manhwa", genres = listOf("Fantasy"), latestChapter = "Chapter 16", updateTime = "about 13 hours ago", isEarlyAccess = true, artworkColor = Color(0xFF311B92), chapters = mockChapters),
-        ReadingTitle("3", "My Husband Didn't Want...", type = "Manhwa", genres = listOf("Action"), latestChapter = "Chapter 12", updateTime = "about 14 hours ago", isTrending = true, artworkColor = Color(0xFF0D47A1), chapters = mockChapters),
-        ReadingTitle("4", "The Beginning After The End", type = "Manhwa", genres = listOf("Isekai"), latestChapter = "Ch. 175", updateTime = "3h ago", isNew = true, artworkColor = Color(0xFF004D40), chapters = mockChapters),
-        ReadingTitle("5", "Eleceed", type = "Manhwa", genres = listOf("Comedy"), latestChapter = "Ch. 260", updateTime = "5h ago", isHot = true, artworkColor = Color(0xFF1B5E20), chapters = mockChapters),
-        ReadingTitle("6", "One Piece", type = "Manga", genres = listOf("Adventure"), latestChapter = "Ch. 1100", updateTime = "2d ago", status = ReadingStatus.READING, progress = 85, artworkColor = Color(0xFFB71C1C), chapters = mockChapters),
-        ReadingTitle("7", "Berserk", type = "Manga", genres = listOf("Dark Fantasy"), latestChapter = "Ch. 375", updateTime = "1w ago", artworkColor = Color(0xFF212121), chapters = mockChapters),
-        ReadingTitle("8", "Lore Olympus", type = "Webcomic", genres = listOf("Romance"), latestChapter = "Ch. 250", updateTime = "12h ago", artworkColor = Color(0xFF880E4F), chapters = mockChapters),
-        ReadingTitle("9", "Batman: The World", type = "Comic", genres = listOf("Action"), latestChapter = "Issue 1", updateTime = "1mo ago", artworkColor = Color(0xFF000000), chapters = mockChapters)
-    )
-
-    fun getTitleById(id: String): ReadingTitle? = (listOf(featuredTitle) + titles).find { it.id == id }
-
-    fun getReaderChapter(titleId: String, chapterId: String): ReaderChapter {
-        val title = getTitleById(titleId) ?: featuredTitle
-        val chapter = title.chapters.find { it.id == chapterId } ?: title.chapters.first()
-        
-        return ReaderChapter(
-            id = chapter.id,
-            titleId = title.id,
-            title = title.title,
-            chapterNumber = chapter.number,
-            chapterTitle = chapter.title,
-            pages = List(15) { i ->
-                ReaderPage(
-                    id = "p$i",
-                    color = title.artworkColor.copy(alpha = 0.1f + (i % 5) * 0.1f)
-                )
-            }
-        )
-    }
-}
-
 // --- UI Components ---
 
 @Composable
 fun ReadingHomeScreen(
     onBackClick: () -> Unit,
     onTitleClick: (String) -> Unit,
+    viewModel: ReadingHomeViewModel? = null,
+    modifier: Modifier = Modifier
+) {
+    if (viewModel == null) {
+        ReadingHomeContent(
+            titles = ReadingMockData.titles,
+            onBackClick = onBackClick,
+            onTitleClick = onTitleClick,
+            modifier = modifier
+        )
+    } else {
+        val uiState by viewModel.uiState.collectAsState()
+        Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
+            when (val state = uiState) {
+                is ReadingHomeState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
+                }
+                is ReadingHomeState.Error -> {
+                    Text(text = "Error: ${state.message}", color = Color.Red, modifier = Modifier.align(Alignment.Center))
+                }
+                is ReadingHomeState.Success -> {
+                    ReadingHomeContent(
+                        titles = state.titles,
+                        onBackClick = onBackClick,
+                        onTitleClick = onTitleClick
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReadingHomeContent(
+    titles: List<ContentTitle>,
+    onBackClick: () -> Unit,
+    onTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
             .verticalScroll(scrollState)
     ) {
         ReadingHomeHeader(onBackClick)
@@ -171,19 +169,20 @@ fun ReadingHomeScreen(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
         )
 
+        val featured = titles.find { it.isHot } ?: ReadingMockData.featuredTitle
         FeaturedHero(
-            title = ReadingMockData.featuredTitle,
-            onClick = { onTitleClick(ReadingMockData.featuredTitle.id) },
+            title = featured,
+            onClick = { onTitleClick(featured.id) },
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        ContentRail("New Series:", ReadingMockData.titles.filter { it.isNew || it.isTrending }, onTitleClick)
-        ContentRail("🔥 HOT MANHWA", ReadingMockData.titles.filter { it.type == "Manhwa" && it.isHot }, onTitleClick)
-        ContentRail("⚡ EARLY ACCESS", ReadingMockData.titles.filter { it.isEarlyAccess }, onTitleClick)
-        ContentRail("🔥 HOT MANGA", ReadingMockData.titles.filter { it.type == "Manga" }, onTitleClick)
-        ContentRail("🦸 HOT COMICS", ReadingMockData.titles.filter { it.type == "Comic" }, onTitleClick)
+        ContentRail("New Series:", titles.filter { it.isNew || it.isTrending }, onTitleClick)
+        ContentRail("🔥 HOT MANHWA", titles.filter { it.type == ContentType.MANHWA && it.isHot }, onTitleClick)
+        ContentRail("⚡ EARLY ACCESS", titles.filter { it.isEarlyAccess }, onTitleClick)
+        ContentRail("🔥 HOT MANGA", titles.filter { it.type == ContentType.MANGA }, onTitleClick)
+        ContentRail("🦸 HOT COMICS", titles.filter { it.type == ContentType.COMIC }, onTitleClick)
 
         Spacer(modifier = Modifier.height(40.dp))
     }
@@ -267,7 +266,7 @@ fun AnnouncementBar(modifier: Modifier = Modifier) {
 
 @Composable
 fun FeaturedHero(
-    title: ReadingTitle,
+    title: ContentTitle,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -287,7 +286,7 @@ fun FeaturedHero(
                     .fillMaxSize()
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(title.artworkColor.copy(alpha = 0.6f), Color.Transparent)
+                            colors = listOf(title.artworkColorHex.toColor().copy(alpha = 0.6f), Color.Transparent)
                         )
                     )
             )
@@ -303,7 +302,7 @@ fun FeaturedHero(
                     shape = RoundedCornerShape(4.dp)
                 ) {
                     Text(
-                        text = title.type.uppercase(),
+                        text = title.type.name,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
@@ -369,10 +368,12 @@ fun FeaturedHero(
 @Composable
 fun ContentRail(
     title: String,
-    titles: List<ReadingTitle>,
+    titles: List<ContentTitle>,
     onTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (titles.isEmpty()) return
+    
     Column(modifier = modifier.padding(vertical = 12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
@@ -409,7 +410,7 @@ fun ContentRail(
 }
 
 @Composable
-fun ReadingCard(title: ReadingTitle, onTitleClick: (String) -> Unit) {
+fun ReadingCard(title: ContentTitle, onTitleClick: (String) -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(targetValue = if (isPressed) 0.96f else 1f, animationSpec = tween(100), label = "card_scale")
@@ -420,7 +421,7 @@ fun ReadingCard(title: ReadingTitle, onTitleClick: (String) -> Unit) {
                 .fillMaxWidth()
                 .aspectRatio(1.6f)
                 .clip(RoundedCornerShape(8.dp))
-                .background(title.artworkColor.copy(alpha = 0.1f))
+                .background(title.artworkColorHex.toColor().copy(alpha = 0.1f))
                 .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
         ) {
             Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.4f)))))
@@ -431,7 +432,7 @@ fun ReadingCard(title: ReadingTitle, onTitleClick: (String) -> Unit) {
                 shape = RoundedCornerShape(4.dp)
             ) {
                 Text(
-                    text = "${title.type} +18",
+                    text = "${title.type.name} +18",
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White),
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
@@ -459,8 +460,8 @@ fun ReadingCard(title: ReadingTitle, onTitleClick: (String) -> Unit) {
         ) {
             Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(title.latestChapter, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = Color.White, fontSize = 10.sp))
-                    Text(title.updateTime, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, color = Color.White.copy(alpha = 0.4f)))
+                    Text("Latest", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = Color.White, fontSize = 10.sp))
+                    Text(title.updatedAt ?: "Recently", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, color = Color.White.copy(alpha = 0.4f)))
                 }
                 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -468,8 +469,8 @@ fun ReadingCard(title: ReadingTitle, onTitleClick: (String) -> Unit) {
                 Spacer(modifier = Modifier.height(6.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Chapter 7", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = Color.White, fontSize = 10.sp))
-                    Text("8 days ago", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, color = Color.White.copy(alpha = 0.4f)))
+                    Text("Available", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = Color.White, fontSize = 10.sp))
+                    Text("Check now", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, color = Color.White.copy(alpha = 0.4f)))
                 }
             }
         }
@@ -492,15 +493,56 @@ fun TitleDetailsScreen(
     onBackClick: () -> Unit,
     onTitleClick: (String) -> Unit,
     onReadClick: (String, String) -> Unit,
+    viewModel: TitleDetailsViewModel? = null,
     modifier: Modifier = Modifier
 ) {
-    val title = ReadingMockData.getTitleById(titleId) ?: return
-    val scrollState = rememberScrollState()
+    if (viewModel == null) {
+        val title = ReadingMockData.getTitleById(titleId) ?: ReadingMockData.featuredTitle
+        TitleDetailsContent(
+            title = title,
+            chapters = emptyList(),
+            onBackClick = onBackClick,
+            onTitleClick = onTitleClick,
+            onReadClick = onReadClick,
+            modifier = modifier
+        )
+    } else {
+        val uiState by viewModel.uiState.collectAsState()
+        Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
+            when (val state = uiState) {
+                is TitleDetailsState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
+                }
+                is TitleDetailsState.Error -> {
+                    Text(text = "Error: ${state.message}", color = Color.Red, modifier = Modifier.align(Alignment.Center))
+                }
+                is TitleDetailsState.Success -> {
+                    TitleDetailsContent(
+                        title = state.title,
+                        chapters = state.chapters,
+                        onBackClick = onBackClick,
+                        onTitleClick = onTitleClick,
+                        onReadClick = onReadClick
+                    )
+                }
+            }
+        }
+    }
+}
 
+@Composable
+fun TitleDetailsContent(
+    title: ContentTitle,
+    chapters: List<Chapter>,
+    onBackClick: () -> Unit,
+    onTitleClick: (String) -> Unit,
+    onReadClick: (String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollState = rememberScrollState()
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
             .verticalScroll(scrollState)
     ) {
         TitleDetailsHeader(title, onBackClick)
@@ -510,16 +552,16 @@ fun TitleDetailsScreen(
             Spacer(modifier = Modifier.height(24.dp))
             TitleDetailsInfo(title)
             Spacer(modifier = Modifier.height(32.dp))
-            ChapterListSection(title, onReadClick)
+            ChapterListSection(title, chapters, onReadClick)
             Spacer(modifier = Modifier.height(40.dp))
-            ContentRail("YOU MAY ALSO LIKE", ReadingMockData.titles.take(4), onTitleClick)
+            ContentRail("YOU MAY ALSO LIKE", ReadingMockData.titles, onTitleClick)
             Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
 
 @Composable
-private fun TitleDetailsHeader(title: ReadingTitle, onBackClick: () -> Unit) {
+private fun TitleDetailsHeader(title: ContentTitle, onBackClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -532,7 +574,7 @@ private fun TitleDetailsHeader(title: ReadingTitle, onBackClick: () -> Unit) {
                 .fillMaxSize()
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(title.artworkColor.copy(alpha = 0.8f), Color.Black)
+                        colors = listOf(title.artworkColorHex.toColor().copy(alpha = 0.8f), Color.Black)
                     )
                 )
         )
@@ -575,11 +617,11 @@ private fun TitleDetailsHeader(title: ReadingTitle, onBackClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "${title.type} · ${title.genres.joinToString(" · ")}",
+                text = "${title.type.name} · ${title.genres.joinToString(" · ")}",
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.6f))
             )
             Text(
-                text = if (title.status == ReadingStatus.READING) "Reading · ${title.progress}%" else "Not started",
+                text = "Not started",
                 style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.4f)),
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -588,10 +630,10 @@ private fun TitleDetailsHeader(title: ReadingTitle, onBackClick: () -> Unit) {
 }
 
 @Composable
-private fun TitleDetailsActions(title: ReadingTitle, onReadClick: (String, String) -> Unit) {
+private fun TitleDetailsActions(title: ContentTitle, onReadClick: (String, String) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth()) {
         Button(
-            onClick = { onReadClick(title.id, title.chapters.firstOrNull()?.id ?: "") },
+            onClick = { onReadClick(title.id, "1") },
             modifier = Modifier.weight(1f).height(48.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
             shape = RoundedCornerShape(12.dp)
@@ -599,7 +641,7 @@ private fun TitleDetailsActions(title: ReadingTitle, onReadClick: (String, Strin
             Icon(Icons.Rounded.PlayArrow, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = if (title.status == ReadingStatus.READING) "CONTINUE READING" else "START READING",
+                text = "START READING",
                 fontWeight = FontWeight.Bold
             )
         }
@@ -618,7 +660,7 @@ private fun TitleDetailsActions(title: ReadingTitle, onReadClick: (String, Strin
 }
 
 @Composable
-private fun TitleDetailsInfo(title: ReadingTitle) {
+private fun TitleDetailsInfo(title: ContentTitle) {
     var expanded by remember { mutableStateOf(false) }
     
     Column {
@@ -633,9 +675,9 @@ private fun TitleDetailsInfo(title: ReadingTitle) {
         Spacer(modifier = Modifier.height(24.dp))
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            InfoItem("Author", title.author)
-            InfoItem("Artist", title.artist)
-            InfoItem("Status", title.latestChapter)
+            InfoItem("Vertical", title.vertical.name)
+            InfoItem("Status", title.status.name)
+            InfoItem("Created", title.createdAt?.take(10) ?: "Recently")
         }
     }
 }
@@ -649,7 +691,7 @@ private fun InfoItem(label: String, value: String) {
 }
 
 @Composable
-private fun ChapterListSection(title: ReadingTitle, onReadClick: (String, String) -> Unit) {
+private fun ChapterListSection(title: ContentTitle, chapters: List<Chapter>, onReadClick: (String, String) -> Unit) {
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(text = "CHAPTERS", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Color.White))
@@ -658,7 +700,11 @@ private fun ChapterListSection(title: ReadingTitle, onReadClick: (String, String
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        title.chapters.forEach { chapter ->
+        if (chapters.isEmpty()) {
+            Text(text = "No chapters available yet.", color = Color.White.copy(alpha = 0.4f), modifier = Modifier.padding(vertical = 16.dp))
+        }
+
+        chapters.forEach { chapter ->
             ChapterRow(chapter) { onReadClick(title.id, chapter.id) }
             HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
         }
@@ -679,23 +725,23 @@ private fun ChapterRow(chapter: Chapter, onClick: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Chapter ${chapter.number}${if (chapter.title.isNotEmpty()) ": ${chapter.title}" else ""}",
+                    text = "Chapter ${chapter.number}${if (!chapter.title.isNullOrEmpty()) ": ${chapter.title}" else ""}",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = Color.White)
                 )
                 Text(
-                    text = if (chapter.readingProgress > 0) "Reading · ${chapter.readingProgress}%" else chapter.releaseDate,
-                    style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = if (chapter.readingProgress > 0) 0.6f else 0.4f))
+                    text = chapter.releaseDate.take(10),
+                    style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.4f))
                 )
             }
             
             when (chapter.accessState) {
-                ChapterAccessState.EARLY_ACCESS -> {
+                "EARLY_ACCESS" -> {
                     StatusBadge("⚡ ${chapter.coinPrice} Coins", Color(0xFFB71C1C).copy(alpha = 0.8f))
                 }
-                ChapterAccessState.NEW -> {
+                "NEW" -> {
                     StatusBadge("NEW", Color(0xFFB71C1C))
                 }
-                ChapterAccessState.LOCKED -> {
+                "LOCKED" -> {
                     Icon(Icons.Rounded.Lock, contentDescription = "Locked", tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(16.dp))
                 }
                 else -> {}

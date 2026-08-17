@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS public.content (
     description TEXT,
     cover_url TEXT,
     backdrop_url TEXT,
-    vertical TEXT NOT NULL, -- READING, ANIME, MOVIES
+    vertical TEXT NOT NULL, -- READING, MUSIC
     content_type TEXT NOT NULL, -- MANHWA, MANGA, SERIES, etc.
     genres TEXT[] DEFAULT '{}',
     status TEXT DEFAULT 'ONGOING',
