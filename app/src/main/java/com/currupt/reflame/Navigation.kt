@@ -9,106 +9,58 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.currupt.reflame.feature.music.MusicHomeViewModel
-import com.currupt.reflame.feature.reading.ReadingHomeViewModel
-import com.currupt.reflame.feature.reading.TitleDetailsViewModel
 
 /**
- * Centralized route definitions for RΞflame.
+ * Centralized route definitions for CURRUPT. Studio.
  */
 sealed class Screen(val route: String) {
-    object Hub : Screen("hub")
-    object Reading : Screen("reading")
-    object Music : Screen("music")
-    object TitleDetails : Screen("details/{titleId}") {
-        fun createRoute(titleId: String) = "details/$titleId"
+    object Home : Screen("home")
+    object Projects : Screen("projects")
+    object ProjectDetails : Screen("projects/{slug}") {
+        fun createRoute(slug: String) = "projects/$slug"
     }
-    object Reader : Screen("reader/{titleId}/{chapterId}") {
-        fun createRoute(titleId: String, chapterId: String) = "reader/$titleId/$chapterId"
-    }
-    object Library : Screen("library")
-    object Search : Screen("search")
-    object Profile : Screen("profile")
-    object Settings : Screen("settings")
+    object Releases : Screen("releases")
+    object About : Screen("about")
+    object Admin : Screen("admin")
 }
 
 @Composable
-fun ReflameNavHost(
+fun CorruptNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Hub.route,
+        startDestination = Screen.Home.route,
         modifier = modifier
     ) {
-        composable(Screen.Hub.route) {
-            HubScreen { categoryTitle ->
-                when (categoryTitle) {
-                    "Music" -> navController.navigate(Screen.Music.route)
-                    "Manhwa" -> navController.navigate(Screen.Reading.route)
-                    else -> {} // Removed Anime/Movies
-                }
-            }
+        composable(Screen.Home.route) {
+            PlaceholderScreen("CURRUPT. Home")
         }
 
-        composable(Screen.Reading.route) {
-            val homeViewModel: ReadingHomeViewModel = viewModel()
-            ReadingHomeScreen(
-                onBackClick = { navController.popBackStack() },
-                onTitleClick = { titleId ->
-                    navController.navigate(Screen.TitleDetails.createRoute(titleId))
-                },
-                viewModel = homeViewModel
-            )
+        composable(Screen.Projects.route) {
+            PlaceholderScreen("Projects Catalog")
         }
 
-        composable(Screen.TitleDetails.route) { backStackEntry ->
-            val titleId = backStackEntry.arguments?.getString("titleId") ?: ""
-            val detailsViewModel: TitleDetailsViewModel = viewModel(
-                key = titleId,
-                factory = TitleDetailsViewModel.provideFactory(titleId)
-            )
-            
-            TitleDetailsScreen(
-                titleId = titleId,
-                onBackClick = { navController.popBackStack() },
-                onTitleClick = { id ->
-                    navController.navigate(Screen.TitleDetails.createRoute(id))
-                },
-                onReadClick = { tId, cId ->
-                    navController.navigate(Screen.Reader.createRoute(tId, cId))
-                },
-                viewModel = detailsViewModel
-            )
+        composable(Screen.ProjectDetails.route) { backStackEntry ->
+            val slug = backStackEntry.arguments?.getString("slug") ?: ""
+            PlaceholderScreen("Project Details: $slug")
         }
 
-        composable(Screen.Reader.route) { backStackEntry ->
-            val titleId = backStackEntry.arguments?.getString("titleId") ?: ""
-            val chapterId = backStackEntry.arguments?.getString("chapterId") ?: ""
-            ReaderScreen(
-                titleId = titleId,
-                chapterId = chapterId,
-                onBackClick = { navController.popBackStack() }
-            )
+        composable(Screen.Releases.route) {
+            PlaceholderScreen("Studio Releases")
         }
 
-        composable(Screen.Music.route) {
-            val musicViewModel: MusicHomeViewModel = viewModel()
-            // Placeholder Music Screen UI
-            Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-                Text(text = "Music Vertical Placeholder", color = Color.White)
-            }
+        composable(Screen.About.route) {
+            PlaceholderScreen("About CURRUPT.")
         }
 
-        composable(Screen.Library.route) { PlaceholderScreen("Library") }
-        composable(Screen.Search.route) { PlaceholderScreen("Search") }
-        composable(Screen.Profile.route) { PlaceholderScreen("Profile") }
-        composable(Screen.Settings.route) { PlaceholderScreen("Settings") }
+        composable(Screen.Admin.route) {
+            PlaceholderScreen("Admin Dashboard (Authorized Only)")
+        }
     }
 }
 
@@ -121,7 +73,7 @@ private fun PlaceholderScreen(name: String) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "$name Screen Placeholder",
+            text = "$name Placeholder",
             style = MaterialTheme.typography.headlineMedium,
             color = Color.White.copy(alpha = 0.7f)
         )

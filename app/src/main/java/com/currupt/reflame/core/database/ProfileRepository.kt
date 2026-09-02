@@ -7,7 +7,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 
 /**
- * Repository for managing RΞflame user profiles in Supabase.
+ * Repository for managing CURRUPT. Studio user profiles in Supabase.
  */
 class ProfileRepository {
     

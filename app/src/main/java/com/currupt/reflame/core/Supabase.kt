@@ -6,7 +6,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.storage.Storage
 
 /**
- * Centralized Supabase client provider for RΞflame.
+ * Centralized Supabase client provider for CURRUPT. Studio.
  * 
  * IMPORTANT: Replace the placeholders below with your real Supabase project credentials.
  * Get these from your Supabase Dashboard -> Settings -> API.
