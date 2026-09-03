@@ -2,6 +2,8 @@ package com.currupt.reflame.feature.projects
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -18,14 +20,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.currupt.reflame.core.MockData
-import com.currupt.reflame.core.model.ProjectStatus
+import com.currupt.reflame.core.model.*
 
 @Composable
 fun ProjectDetailsScreen(
     slug: String,
     onBackClick: () -> Unit
 ) {
-    val project = MockData.projects.find { it.slug == slug } ?: return
+    val content = MockData.contents.find { it.slug == slug } ?: return
     val scrollState = rememberScrollState()
 
     Column(
@@ -41,7 +43,7 @@ fun ProjectDetailsScreen(
                 .height(300.dp)
         ) {
             AsyncImage(
-                model = project.heroUrl,
+                model = content.bannerUrl.ifBlank { content.coverUrl },
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -77,7 +79,7 @@ fun ProjectDetailsScreen(
             modifier = Modifier.padding(horizontal = 24.dp)
         ) {
             Text(
-                text = project.title,
+                text = content.title,
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Black,
                     color = Color.White
@@ -94,7 +96,7 @@ fun ProjectDetailsScreen(
                     modifier = Modifier.border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
                 ) {
                     Text(
-                        text = project.type.name,
+                        text = content.contentType.name,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -104,7 +106,7 @@ fun ProjectDetailsScreen(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = project.status.name.replace("_", " "),
+                    text = content.status.name.replace("_", " "),
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = Color.White.copy(alpha = 0.5f)
                     )
@@ -114,14 +116,14 @@ fun ProjectDetailsScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             Text(
-                text = project.description,
+                text = content.description,
                 style = MaterialTheme.typography.bodyLarge.copy(
                     color = Color.White.copy(alpha = 0.8f),
                     lineHeight = 28.sp
                 )
             )
             
-            if (project.status == ProjectStatus.IN_DEVELOPMENT) {
+            if (content.contentType == ContentType.PROJECT && content.status == ContentStatus.IN_DEVELOPMENT) {
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
                     text = "PROGRESS",
@@ -133,7 +135,7 @@ fun ProjectDetailsScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 LinearProgressIndicator(
-                    progress = { project.progress / 100f },
+                    progress = { 0.5f }, // From metadata
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
@@ -141,33 +143,35 @@ fun ProjectDetailsScreen(
                     color = Color.White,
                     trackColor = Color.White.copy(alpha = 0.1f)
                 )
-                Text(
-                    text = "${project.progress}%",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    modifier = Modifier.align(Alignment.End).padding(top = 4.dp)
-                )
             }
             
-            if (project.releaseInfo.isNotEmpty()) {
+            // Media Gallery Foundation
+            if (content.media.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
-                    text = "RELEASE INFO",
+                    text = "MEDIA",
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.4f),
                         letterSpacing = 2.sp
                     )
                 )
-                Text(
-                    text = project.releaseInfo,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = Color.White
-                    ),
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(content.media) { media ->
+                        Surface(
+                            modifier = Modifier
+                                .width(200.dp)
+                                .aspectRatio(1.77f)
+                                .clip(RoundedCornerShape(12.dp)),
+                            color = Color.White.copy(alpha = 0.05f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(text = media.type.name, color = Color.White.copy(alpha = 0.2f))
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -27,7 +27,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun HomeScreen(
-    onProjectClick: (String) -> Unit
+    onContentClick: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
     
@@ -35,49 +35,74 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(bottom = 100.dp) // Space for floating bottom nav
+            .padding(bottom = 100.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
         
-        AnnouncementBoard(
-            announcement = MockData.announcements.first()
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        HeroCarousel(
-            projects = MockData.projects.filter { it.isFeatured },
-            onProjectClick = onProjectClick
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Studio Sections
+        // Data-driven sections from Core
         MockData.sections.forEach { section ->
-            val titles = when (section.type) {
-                SectionType.FEATURED -> MockData.projects.filter { it.isFeatured }
-                SectionType.IN_DEVELOPMENT -> MockData.projects.filter { it.status == ProjectStatus.IN_DEVELOPMENT }
-                SectionType.GAMES -> MockData.projects.filter { it.type == ProjectType.GAME }
-                SectionType.APPS -> MockData.projects.filter { it.type == ProjectType.APP }
-                SectionType.EXPERIMENTS -> MockData.projects.filter { it.type == ProjectType.EXPERIMENT }
-                else -> MockData.projects
-            }
-            
-            if (titles.isNotEmpty()) {
-                HomeSection(
-                    title = section.title,
-                    subtitle = section.subtitle,
-                    projects = titles,
-                    onProjectClick = onProjectClick
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-            }
+            SectionRenderer(
+                section = section,
+                onContentClick = onContentClick
+            )
         }
     }
 }
 
 @Composable
-fun AnnouncementBoard(announcement: Announcement) {
+fun SectionRenderer(
+    section: StudioSection,
+    onContentClick: (String) -> Unit
+) {
+    // Content source logic (simplified for Phase 3)
+    val contentItems = when (section.type) {
+        SectionType.FEATURED -> MockData.contents.filter { it.isFeatured }
+        SectionType.RAIL -> {
+            // Simplified: if title matches or based on metadata query
+            if (section.title.contains("Experiments")) {
+                MockData.contents.filter { it.contentType == ContentType.EXPERIMENT }
+            } else {
+                MockData.contents.filter { it.contentType == ContentType.PROJECT }
+            }
+        }
+        else -> MockData.contents
+    }
+
+    when (section.type) {
+        SectionType.HERO -> {
+            HeroCarousel(
+                contents = contentItems.filter { it.isFeatured },
+                onContentClick = onContentClick
+            )
+        }
+        SectionType.ANNOUNCEMENT -> {
+            MockData.contents.filter { it.contentType == ContentType.ANNOUNCEMENT }.firstOrNull()?.let {
+                AnnouncementBoard(announcement = it)
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+        SectionType.RAIL -> {
+            ContentSectionRail(
+                title = section.title,
+                subtitle = section.subtitle,
+                items = contentItems,
+                onContentClick = onContentClick
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+        SectionType.GRID -> {
+            // Placeholder
+        }
+        SectionType.TEXT -> {
+            TextSection(title = section.title, content = section.subtitle)
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+        else -> {}
+    }
+}
+
+@Composable
+fun AnnouncementBoard(announcement: Content) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -120,17 +145,17 @@ fun AnnouncementBoard(announcement: Announcement) {
 
 @Composable
 fun HeroCarousel(
-    projects: List<Project>,
-    onProjectClick: (String) -> Unit
+    contents: List<Content>,
+    onContentClick: (String) -> Unit
 ) {
-    if (projects.isEmpty()) return
+    if (contents.isEmpty()) return
     
     var currentIndex by remember { mutableIntStateOf(0) }
     
     LaunchedEffect(Unit) {
         while (true) {
             delay(5.seconds)
-            currentIndex = (currentIndex + 1) % projects.size
+            currentIndex = (currentIndex + 1) % contents.size
         }
     }
 
@@ -141,25 +166,23 @@ fun HeroCarousel(
             .padding(horizontal = 24.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(Color(0xFF121212))
-            .clickable { onProjectClick(projects[currentIndex].slug) }
+            .clickable { onContentClick(contents[currentIndex].slug) }
     ) {
-        // Hero Content with Crossfade
         AnimatedContent(
-            targetState = projects[currentIndex],
+            targetState = contents[currentIndex],
             transitionSpec = {
                 fadeIn(animationSpec = tween(1000)) togetherWith fadeOut(animationSpec = tween(1000))
             },
             label = "hero_fade"
-        ) { project ->
+        ) { item ->
             Box(modifier = Modifier.fillMaxSize()) {
                 AsyncImage(
-                    model = project.heroUrl,
+                    model = item.bannerUrl.ifBlank { item.coverUrl },
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
                 
-                // Readability Gradient
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -182,7 +205,7 @@ fun HeroCarousel(
                         modifier = Modifier.border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
                     ) {
                         Text(
-                            text = project.status.name.replace("_", " "),
+                            text = item.status.name.replace("_", " "),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -194,7 +217,7 @@ fun HeroCarousel(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Text(
-                        text = project.title,
+                        text = item.title,
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Black,
                             color = Color.White
@@ -202,7 +225,7 @@ fun HeroCarousel(
                     )
                     
                     Text(
-                        text = project.description,
+                        text = item.description,
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = Color.White.copy(alpha = 0.6f)
                         ),
@@ -214,7 +237,7 @@ fun HeroCarousel(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Button(
-                        onClick = { onProjectClick(project.slug) },
+                        onClick = { onContentClick(item.slug) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.White,
                             contentColor = Color.Black
@@ -234,7 +257,7 @@ fun HeroCarousel(
                 .align(Alignment.TopEnd)
                 .padding(24.dp)
         ) {
-            projects.forEachIndexed { index, _ ->
+            contents.forEachIndexed { index, _ ->
                 Box(
                     modifier = Modifier
                         .padding(start = 4.dp)
@@ -251,11 +274,11 @@ fun HeroCarousel(
 }
 
 @Composable
-fun HomeSection(
+fun ContentSectionRail(
     title: String,
     subtitle: String?,
-    projects: List<Project>,
-    onProjectClick: (String) -> Unit
+    items: List<Content>,
+    onContentClick: (String) -> Unit
 ) {
     Column {
         Row(
@@ -288,7 +311,7 @@ fun HomeSection(
                     fontWeight = FontWeight.Bold,
                     color = Color.White.copy(alpha = 0.5f)
                 ),
-                modifier = Modifier.clickable { /* Navigate to Projects with filter */ }
+                modifier = Modifier.clickable { /* Action */ }
             )
         }
         
@@ -298,16 +321,16 @@ fun HomeSection(
             contentPadding = PaddingValues(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(projects) { project ->
-                ProjectCard(project = project, onClick = { onProjectClick(project.slug) })
+            items(items) { item ->
+                ContentCard(content = item, onClick = { onContentClick(item.slug) })
             }
         }
     }
 }
 
 @Composable
-fun ProjectCard(
-    project: Project,
+fun ContentCard(
+    content: Content,
     onClick: () -> Unit
 ) {
     Column(
@@ -324,16 +347,16 @@ fun ProjectCard(
                 .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
         ) {
             AsyncImage(
-                model = project.coverUrl,
+                model = content.coverUrl,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
             
-            // Progress Bar if in development
-            if (project.status == ProjectStatus.IN_DEVELOPMENT) {
+            // Progress placeholder if appropriate
+            if (content.status == ContentStatus.IN_DEVELOPMENT) {
                 LinearProgressIndicator(
-                    progress = { project.progress / 100f },
+                    progress = { 0.5f }, // From metadata later
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(2.dp)
@@ -347,7 +370,7 @@ fun ProjectCard(
         Spacer(modifier = Modifier.height(12.dp))
         
         Text(
-            text = project.title,
+            text = content.title,
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -357,10 +380,19 @@ fun ProjectCard(
         )
         
         Text(
-            text = project.type.name,
+            text = content.contentType.name,
             style = MaterialTheme.typography.labelSmall.copy(
                 color = Color.White.copy(alpha = 0.4f)
             )
         )
+    }
+}
+
+@Composable
+fun TextSection(title: String, content: String) {
+    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+        Text(text = title, style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = content, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
     }
 }

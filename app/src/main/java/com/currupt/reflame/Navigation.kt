@@ -46,7 +46,7 @@ fun CorruptNavHost(
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
-                    onProjectClick = { slug ->
+                    onContentClick = { slug ->
                         navController.navigate(Screen.ProjectDetails.createRoute(slug))
                     }
                 )
@@ -54,7 +54,7 @@ fun CorruptNavHost(
 
             composable(Screen.Projects.route) {
                 ProjectsScreen(
-                    onProjectClick = { slug ->
+                    onContentClick = { slug ->
                         navController.navigate(Screen.ProjectDetails.createRoute(slug))
                     }
                 )

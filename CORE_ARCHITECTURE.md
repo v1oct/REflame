@@ -1,38 +1,40 @@
-# CURRUPT. Studio — Project Architecture
+# CURRUPT. Studio — Content Canvas Architecture
 
-This document describes the evolved modular architecture of the CURRUPT. Studio app.
+This document describes the modular architecture of the CURRUPT. Studio app, now fully genericized into a flexible content platform.
 
 ## 1. Modular Separation
-The project is physically organized into:
-- **Core Layer**: Universal models, repository interfaces, and platform-wide logic.
-- **UI Layer**: Reusable components and theme definitions.
+- **Core Layer**: Generic content models, data-driven repository interfaces, and media engine.
+- **UI Layer**: Reusable components, theme definitions, and data-driven screen renderers.
 
-## 2. Studio Domain Models [IMPLEMENTED]
-Models representing the core studio entities.
-- **Project**: Represents a GAME, APP, or EXPERIMENT. Includes metadata, status, artwork, and links.
-- **Announcement**: Studio news and updates.
-- **Release**: Versioned releases of projects.
-- **DevelopmentLog**: Progress logs for projects in development.
-- **StudioSection**: Data-driven homepage sections (FEATURED, RECENT_RELEASES, etc.).
+## 2. Generic Content Model [IMPLEMENTED]
+CURRUPT. uses a unified `Content` model capable of representing:
+- **PROJECTS**: Apps, Digital Projects, Experiments.
+- **PRESETS / TEMPLATES**: Discord templates, UI kits, etc.
+- **MEDIA**: Videos, Studio Showcases, Audio.
+- **ARTICLES**: Studio updates, dev logs.
+- **RELEASES & ANNOUNCEMENTS**.
 
-## 3. Data / Repository Layer [IMPLEMENTED]
-Repositories responsible for retrieving data from Supabase.
-- **ProjectRepository**: `core/database/StudioRepositories.kt`
-- **AnnouncementRepository**: `core/database/StudioRepositories.kt`
-- **ReleaseRepository**: `core/database/StudioRepositories.kt`
-- **DevelopmentLogRepository**: `core/database/StudioRepositories.kt`
-- **StudioSectionRepository**: `core/database/StudioRepositories.kt`
-- **ProfileRepository**: `core/database/ProfileRepository.kt`
-- **AdminRepository**: `core/auth/AdminRepository.kt`
+## 3. Media Architecture [IMPLEMENTED]
+- **MediaManager**: Reusable foundation for Audio and Video playback using **Jetpack Media3 (ExoPlayer)**.
+- **ContentMedia**: Generic attachment model for IMAGE, VIDEO, AUDIO, and GALLERY items.
 
-## 4. Identity & Admin Foundation [IMPLEMENTED]
-- **Identity**: `core/auth/AuthRepository.kt`, `core/model/Identity.kt`.
-- **Admin Authorization**: Server-authoritative check for admin roles (ADMIN, USER, VISITOR).
+## 4. Data-Driven Homepage (Canvas) [IMPLEMENTED]
+The homepage is no longer hardcoded. It renders a sequence of `StudioSection` items:
+- **HERO**: Cinematic featured content.
+- **RAIL**: Horizontal scrolling discovery rails.
+- **ANNOUNCEMENT**: Integrated studio notices.
+- **TEXT**: Editorial descriptions.
 
-## 5. Security (Supabase)
-- **RLS**: PostgreSQL policies ensure data privacy. Users can only manage their own profiles. Admins have full access to studio content.
-- **Public Access**: Visitors can read all published studio content without logging in.
+## 5. Repositories [IMPLEMENTED]
+- **ContentRepository**: Universal retrieval by type, category, or slug.
+- **CategoryRepository**: Management of data-driven studio categories.
+- **StudioSectionRepository**: Fetching of homepage layouts.
+- **MediaRepository**: (Foundation) Reusable media item management.
 
-## 6. Future Implementation Strategy
-- **Admin Dashboard**: A separate area for authorized accounts to manage projects and announcements.
-- **Media Engine**: Immersive project details with hero videos and artwork.
+## 6. Security (Supabase)
+- **RLS**: Policies ensure that only published content is viewable by visitors.
+- **Admin**: Auth rules allow authorized accounts to manage the entire canvas.
+
+## 7. Future Directions
+- **Interactive Player UI**: Custom skins for CURRUPT. Audio and Video players.
+- **Admin CMS**: A secure area for real-time content and section management.

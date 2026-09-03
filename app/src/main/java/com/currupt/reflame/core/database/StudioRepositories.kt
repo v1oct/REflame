@@ -6,62 +6,45 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class ProjectRepository {
+/**
+ * Universal content repository for CURRUPT. Studio.
+ */
+class ContentRepository {
     private val postgrest = Supabase.client.postgrest
 
-    suspend fun getProjects(): List<Project> = withContext(Dispatchers.IO) {
+    suspend fun getContent(contentType: ContentType? = null, categoryId: String? = null): List<Content> = withContext(Dispatchers.IO) {
         try {
-            postgrest["projects"].select().decodeList<Project>()
+            postgrest["content"].select {
+                filter {
+                    eq("is_published", true)
+                    contentType?.let { eq("content_type", it.name) }
+                    categoryId?.let { eq("category_id", it) }
+                }
+            }.decodeList<Content>()
         } catch (e: Exception) {
             emptyList()
         }
     }
 
-    suspend fun getProjectBySlug(slug: String): Project? = withContext(Dispatchers.IO) {
+    suspend fun getContentBySlug(slug: String): Content? = withContext(Dispatchers.IO) {
         try {
-            postgrest["projects"].select {
+            postgrest["content"].select {
                 filter { eq("slug", slug) }
-            }.decodeSingleOrNull<Project>()
+            }.decodeSingleOrNull<Content>()
         } catch (e: Exception) {
             null
         }
     }
 }
 
-class AnnouncementRepository {
+class CategoryRepository {
     private val postgrest = Supabase.client.postgrest
 
-    suspend fun getAnnouncements(): List<Announcement> = withContext(Dispatchers.IO) {
+    suspend fun getCategories(): List<Category> = withContext(Dispatchers.IO) {
         try {
-            postgrest["announcements"]
-                .select { filter { eq("is_published", true) } }
-                .decodeList<Announcement>()
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-}
-
-class ReleaseRepository {
-    private val postgrest = Supabase.client.postgrest
-
-    suspend fun getReleases(): List<Release> = withContext(Dispatchers.IO) {
-        try {
-            postgrest["releases"].select().decodeList<Release>()
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-}
-
-class DevelopmentLogRepository {
-    private val postgrest = Supabase.client.postgrest
-
-    suspend fun getLogs(projectId: String): List<DevelopmentLog> = withContext(Dispatchers.IO) {
-        try {
-            postgrest["development_logs"].select {
-                filter { eq("project_id", projectId) }
-            }.decodeList<DevelopmentLog>()
+            postgrest["categories"].select {
+                filter { eq("is_active", true) }
+            }.decodeList<Category>()
         } catch (e: Exception) {
             emptyList()
         }

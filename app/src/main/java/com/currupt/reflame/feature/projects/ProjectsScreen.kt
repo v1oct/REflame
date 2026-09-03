@@ -1,31 +1,30 @@
 package com.currupt.reflame.feature.projects
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.currupt.reflame.core.MockData
-import com.currupt.reflame.core.model.ProjectType
-import com.currupt.reflame.feature.home.ProjectCard
+import com.currupt.reflame.core.model.ContentType
+import com.currupt.reflame.feature.home.ContentCard
 
 @Composable
 fun ProjectsScreen(
-    onProjectClick: (String) -> Unit
+    onContentClick: (String) -> Unit
 ) {
-    var selectedType by remember { mutableStateOf<ProjectType?>(null) }
+    var selectedType by remember { mutableStateOf<ContentType?>(null) }
     
-    val filteredProjects = remember(selectedType) {
-        if (selectedType == null) MockData.projects
-        else MockData.projects.filter { it.type == selectedType }
+    val filteredContent = remember(selectedType) {
+        if (selectedType == null) MockData.contents
+        else MockData.contents.filter { it.contentType == selectedType }
     }
 
     Column(
@@ -36,7 +35,7 @@ fun ProjectsScreen(
         Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "PROJECTS",
+            text = "CATALOG",
             style = MaterialTheme.typography.displaySmall.copy(
                 fontWeight = FontWeight.Black,
                 color = Color.White
@@ -47,7 +46,7 @@ fun ProjectsScreen(
         
         // Filter Chips
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChip(
@@ -56,7 +55,7 @@ fun ProjectsScreen(
                 label = { Text("ALL") },
                 colors = filterChipColors()
             )
-            ProjectType.entries.forEach { type ->
+            ContentType.entries.filter { it != ContentType.ANNOUNCEMENT }.forEach { type ->
                 FilterChip(
                     selected = selectedType == type,
                     onClick = { selectedType = type },
@@ -75,10 +74,10 @@ fun ProjectsScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 120.dp)
         ) {
-            items(filteredProjects) { project ->
-                ProjectCard(
-                    project = project,
-                    onClick = { onProjectClick(project.slug) }
+            items(filteredContent) { item ->
+                ContentCard(
+                    content = item,
+                    onClick = { onContentClick(item.slug) }
                 )
             }
         }
