@@ -1,6 +1,5 @@
 package com.currupt.reflame
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -12,6 +11,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.currupt.reflame.feature.about.AboutScreen
+import com.currupt.reflame.feature.admin.AdminScreen
+import com.currupt.reflame.feature.home.HomeScreen
+import com.currupt.reflame.feature.projects.ProjectDetailsScreen
+import com.currupt.reflame.feature.projects.ProjectsScreen
+import com.currupt.reflame.feature.releases.ReleasesScreen
+import com.currupt.reflame.ui.component.AppShell
 
 /**
  * Centralized route definitions for CURRUPT. Studio.
@@ -32,50 +38,47 @@ fun CorruptNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = Screen.Home.route,
-        modifier = modifier
-    ) {
-        composable(Screen.Home.route) {
-            PlaceholderScreen("CURRUPT. Home")
-        }
+    AppShell(navController = navController) { _ ->
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Home.route,
+            modifier = modifier
+        ) {
+            composable(Screen.Home.route) {
+                HomeScreen(
+                    onProjectClick = { slug ->
+                        navController.navigate(Screen.ProjectDetails.createRoute(slug))
+                    }
+                )
+            }
 
-        composable(Screen.Projects.route) {
-            PlaceholderScreen("Projects Catalog")
-        }
+            composable(Screen.Projects.route) {
+                ProjectsScreen(
+                    onProjectClick = { slug ->
+                        navController.navigate(Screen.ProjectDetails.createRoute(slug))
+                    }
+                )
+            }
 
-        composable(Screen.ProjectDetails.route) { backStackEntry ->
-            val slug = backStackEntry.arguments?.getString("slug") ?: ""
-            PlaceholderScreen("Project Details: $slug")
-        }
+            composable(Screen.ProjectDetails.route) { backStackEntry ->
+                val slug = backStackEntry.arguments?.getString("slug") ?: ""
+                ProjectDetailsScreen(
+                    slug = slug,
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
 
-        composable(Screen.Releases.route) {
-            PlaceholderScreen("Studio Releases")
-        }
+            composable(Screen.Releases.route) {
+                ReleasesScreen()
+            }
 
-        composable(Screen.About.route) {
-            PlaceholderScreen("About CURRUPT.")
-        }
+            composable(Screen.About.route) {
+                AboutScreen()
+            }
 
-        composable(Screen.Admin.route) {
-            PlaceholderScreen("Admin Dashboard (Authorized Only)")
+            composable(Screen.Admin.route) {
+                AdminScreen()
+            }
         }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(name: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "$name Placeholder",
-            style = MaterialTheme.typography.headlineMedium,
-            color = Color.White.copy(alpha = 0.7f)
-        )
     }
 }
