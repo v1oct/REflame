@@ -37,8 +37,6 @@ fun HomeScreen(
             .verticalScroll(scrollState)
             .padding(bottom = 100.dp)
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        
         // Data-driven sections from Core
         MockData.sections.forEach { section ->
             SectionRenderer(

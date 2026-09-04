@@ -1,6 +1,5 @@
 package com.currupt.reflame.feature.releases
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -10,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun ReleasesScreen() {
@@ -18,18 +18,26 @@ fun ReleasesScreen() {
             .fillMaxSize()
             .padding(horizontal = 24.dp)
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = "RELEASES",
-            style = MaterialTheme.typography.displaySmall.copy(
-                fontWeight = FontWeight.Black,
-                color = Color.White
+        // Page Header
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Text(
+                text = "RELEASES",
+                style = MaterialTheme.typography.displaySmall.copy(
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
+                    letterSpacing = 1.sp
+                )
             )
-        )
+            Text(
+                text = "Track the latest studio deployments.",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+            )
+        }
         
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f),
             contentAlignment = Alignment.Center
         ) {
             Text(

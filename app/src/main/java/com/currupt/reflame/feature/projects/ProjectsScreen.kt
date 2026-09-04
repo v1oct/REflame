@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.currupt.reflame.core.MockData
 import com.currupt.reflame.core.model.ContentType
 import com.currupt.reflame.feature.home.ContentCard
@@ -32,21 +33,31 @@ fun ProjectsScreen(
             .fillMaxSize()
             .padding(horizontal = 24.dp)
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = "CATALOG",
-            style = MaterialTheme.typography.displaySmall.copy(
-                fontWeight = FontWeight.Black,
-                color = Color.White
+        // Page Header
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Text(
+                text = "CATALOG",
+                style = MaterialTheme.typography.displaySmall.copy(
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
+                    letterSpacing = 1.sp
+                )
             )
-        )
+            Text(
+                text = "Browse the CURRUPT. collection.",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+            )
+        }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
-        // Filter Chips
+        // Filter Chips Row
         Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChip(
@@ -67,6 +78,7 @@ fun ProjectsScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
+        // Content Grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -89,5 +101,7 @@ private fun filterChipColors() = FilterChipDefaults.filterChipColors(
     containerColor = Color.Transparent,
     labelColor = Color.White.copy(alpha = 0.4f),
     selectedContainerColor = Color.White.copy(alpha = 0.1f),
-    selectedLabelColor = Color.White
+    selectedLabelColor = Color.White,
+    selectedLeadingIconColor = Color.White,
+    iconColor = Color.White.copy(alpha = 0.4f)
 )
